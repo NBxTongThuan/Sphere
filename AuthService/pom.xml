@@ -102,6 +102,13 @@
 			<version>2.2.224</version>
 			<scope>test</scope>
 		</dependency>
+
+<!--		Common depen-->
+		<dependency>
+			<groupId>com.sphere.tongthuan</groupId>
+			<artifactId>Common</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
