@@ -1,8 +1,7 @@
 server:
   port: 8080
   servlet:
-    context-path: /auth
-
+    context-path: /authentication-service
 
 spring:
   application:
@@ -16,4 +15,19 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+jwt:
+  signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
+  valid-access-duration: 30 # in minute
+  valid-refresh-duration: 10080 # in minute
+
+
+app:
+  account:
+    admin:
+      email: admin
+      password: abc123!@#
+  token:
+    max-refresh-token: 5
+
 
