@@ -3,10 +3,7 @@ package com.sphere.tongthuan.AuthService.entity;
 
 import com.sphere.tongthuan.AuthService.constant.UserStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,7 +11,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -37,7 +35,6 @@ public class User {
     @ManyToMany
     Set<Role> roles;
 
-
     @OneToMany(
             mappedBy = "user",
             fetch = FetchType.LAZY,
@@ -47,6 +44,5 @@ public class User {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
-
 
 }

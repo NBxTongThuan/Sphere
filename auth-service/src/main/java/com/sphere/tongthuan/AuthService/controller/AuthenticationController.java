@@ -31,7 +31,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
-    BaseResponse<String> login(@RequestBody LogoutRequest logoutRequest, HttpServletRequest httpServletRequest, HttpServletResponse response) throws JOSEException {
+    BaseResponse<String> logout(@RequestBody LogoutRequest logoutRequest, HttpServletRequest httpServletRequest, HttpServletResponse response) throws JOSEException {
         authenticationService.logout(logoutRequest, httpServletRequest, response);
         return BaseResponse.<String>builder().result("success").code(1000).build();
     }

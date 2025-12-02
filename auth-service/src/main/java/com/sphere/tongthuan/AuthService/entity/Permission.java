@@ -1,29 +1,25 @@
 package com.sphere.tongthuan.AuthService.entity;
 
-
-import com.sphere.tongthuan.constant.Roles;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
 
 @Entity
-@Table(name = "role")
+@Table(name = "permission")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Role {
+public class Permission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(unique = true, nullable = true)
-    private String roleName;
+    @Column(unique = true, nullable = false)
+    private String permissionName;
 
     private String description;
 
@@ -31,7 +27,5 @@ public class Role {
 
     private LocalDateTime lastModified;
 
-    @ManyToMany
-    private Set<Permission> permissions;
-
 }
+

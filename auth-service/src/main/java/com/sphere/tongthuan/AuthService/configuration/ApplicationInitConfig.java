@@ -49,12 +49,12 @@ public class ApplicationInitConfig {
         return args -> {
             if (userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
                 roleRepository.save(Role.builder()
-                        .name(Roles.USER.name())
+                        .roleName(Roles.USER.name())
                         .description("User role")
                         .build());
 
                 Role adminRole = roleRepository.save(Role.builder()
-                        .name(Roles.ADMIN.name())
+                        .roleName(Roles.ADMIN.name())
                         .description("Admin role")
                         .build());
 

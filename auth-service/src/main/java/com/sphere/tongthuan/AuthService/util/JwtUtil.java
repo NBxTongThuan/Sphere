@@ -128,7 +128,7 @@ public class JwtUtil {
         if (!CollectionUtils.isEmpty(user.getRoles()))
             user.getRoles().forEach(
                     role -> {
-                        stringJoiner.add("ROLE_" + role.getName());
+                        stringJoiner.add("ROLE_" + role.getRoleName());
                     }
             );
 

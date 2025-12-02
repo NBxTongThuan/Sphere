@@ -1,8 +1,7 @@
 server:
   port: 8080
   servlet:
-    context-path: /authentication-service
-
+    context-path: /auth-service
 spring:
   application:
     name: AuthService
@@ -25,7 +24,7 @@ jwt:
 app:
   account:
     admin:
-      email: admin
+      email: thuantn10
       password: abc123!@#
   token:
     max-refresh-token: 5
