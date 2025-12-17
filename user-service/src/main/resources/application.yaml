@@ -1,10 +1,10 @@
 server:
   port: 8080
   servlet:
-    context-path: /auth-service
+    context-path: /user-service
 spring:
   application:
-    name: AuthService
+    name: user-service
   datasource:
     url: "jdbc:mysql://localhost:3306/sphere_auth"
     driverClassName: "com.mysql.cj.jdbc.Driver"

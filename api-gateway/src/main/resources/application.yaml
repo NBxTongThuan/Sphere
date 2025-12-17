@@ -3,6 +3,7 @@ server:
 
 app:
   api-prefix: /api/v1
+  api-strip-prefix: 2
 
 spring:
   application:
@@ -15,4 +16,4 @@ spring:
           predicates:
             - Path=${app.api-prefix}/identity/**
           filters:
-            - StripPrefix=2
+            - StripPrefix=${app.api-strip-prefix}
