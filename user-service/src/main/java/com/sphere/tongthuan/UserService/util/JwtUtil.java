@@ -6,8 +6,6 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sphere.tongthuan.UserService.entity.User;
-import com.sphere.tongthuan.UserService.exception.AppException;
-import com.sphere.tongthuan.UserService.exception.ErrorCode;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -69,7 +67,7 @@ public class JwtUtil {
         var verify = signedJWT.verify(verifier);
 
         if(!(verify && expiryTime.after(new Date())))
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new RuntimeException("User not found!");
 
         return signedJWT;
     }
