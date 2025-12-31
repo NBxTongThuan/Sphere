@@ -1,8 +1,9 @@
 package com.sphere.tongthuan.UserService.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sphere.tongthuan.UserService.dto.ResponseTemplate;
 import com.sphere.tongthuan.UserService.exception.ErrorCode;
-import com.sphere.tongthuan.dto.BaseResponse;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
@@ -12,23 +13,23 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import java.io.IOException;
 
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
-    @Override
-    public void commence(
-            HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
-            throws IOException {
-        ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
+	@Override
+	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
 
-        response.setStatus(errorCode.getStatusCode().value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
 
-        BaseResponse<?> apiResponse = BaseResponse.builder()
-                .code(errorCode.getCode())
-                .message(errorCode.getMessage())
-                .build();
+		response.setStatus(errorCode.getHttpStatusCode().value());
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        ObjectMapper objectMapper = new ObjectMapper();
+		ResponseTemplate<?> responseTemplate = ResponseTemplate.builder()
+			.code(errorCode.getCode())
+			.message(errorCode.getMessage())
+			.build();
 
-        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
-        response.flushBuffer();
-    }
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		response.getWriter().write(objectMapper.writeValueAsString(responseTemplate));
+		response.flushBuffer();
+
+	}
 }

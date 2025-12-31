@@ -13,10 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CreateProfileRequest {
 
-    private String lastName;
-
-    private String firstName;
-
     private LocalDate dateOfBirth;
 
     private LocalDateTime createdDate;

@@ -8,6 +8,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.sphere.tongthuan.UserService.entity.User;
 import com.sphere.tongthuan.UserService.exception.AppException;
 import com.sphere.tongthuan.UserService.exception.ErrorCode;
+import com.sphere.tongthuan.UserService.repository.InvalidAccessTokenRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -21,6 +22,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -42,6 +44,8 @@ public class JwtUtil {
     @Value("${jwt.valid-refresh-duration}")
     public long VALID_REFRESH_DURATION;
 
+    InvalidAccessTokenRepository invalidAccessTokenRepository;
+
     public String getTokenFromCookie(HttpServletRequest httpServletRequest)
     {
         if(httpServletRequest.getCookies() != null)
@@ -56,47 +60,47 @@ public class JwtUtil {
     }
 
 
-    public SignedJWT verifyToken(String token, boolean isRefreshToken) throws JOSEException, ParseException {
+    public Boolean verifyToken(String token)
+        throws JOSEException, ParseException {
+
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
 
         SignedJWT signedJWT = SignedJWT.parse(token);
 
-        Date expiryTime = (isRefreshToken)
-                ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
-                .toInstant().plus(VALID_REFRESH_DURATION, ChronoUnit.SECONDS).toEpochMilli())
-                : signedJWT.getJWTClaimsSet().getExpirationTime();
-
-        var verify = signedJWT.verify(verifier);
-
-        if(!(verify && expiryTime.after(new Date())))
+        if (invalidAccessTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        return signedJWT;
+        var verified = signedJWT.verify(verifier);
+
+        Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        return verified && expirationTime.after(new Date());
     }
 
 
-    public String generateAccessToken(User user) throws JOSEException {
+    public String  generateAccessToken(User user) throws JOSEException {
 
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
-        JWTClaimsSet accessJwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(user.getUserId())
-                .claim("email", user.getEmail())
-                .issueTime(new Date())
-                .expirationTime(new Date(
-                        Instant.now().plus(VALID_ACCESS_DURATION, ChronoUnit.MINUTES).toEpochMilli()
-                ))
-                .jwtID(UUID.randomUUID().toString())
-                .claim("scope", buildScope(user))
-                .build();
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+            .jwtID(String.valueOf(UUID.randomUUID()))
+            .subject(user.getEmail())
+            .issuer("TongThuan")
+            .issueTime(new Date())
+            .expirationTime(
+                new Date(Instant.now().plus(VALID_ACCESS_DURATION, ChronoUnit.MINUTES).toEpochMilli())
+            )
+            .claim("scope",buildScope(user))
+            .claim("type", "ACCESS")
+            .build();
 
-        Payload accessPayload = new Payload(accessJwtClaimsSet.toJSONObject());
+        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
-        JWSObject accessToken = new JWSObject(header, accessPayload);
-        accessToken.sign(new MACSigner(SIGNER_KEY.getBytes()));
+       JWSObject jwsObject = new JWSObject(header, payload);
 
-        return accessToken.serialize();
+       jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
 
+       return jwsObject.serialize();
     }
 
     public String generateRefreshToken(User user) throws JOSEException {
@@ -127,12 +131,17 @@ public class JwtUtil {
         if (!CollectionUtils.isEmpty(user.getRoles()))
             user.getRoles().forEach(
                     role -> {
-                        stringJoiner.add("ROLE_" + role.getRoleName());
+                        stringJoiner.add("ROLE_"+role.getRoleName());
+                        role.getPermissions().forEach(
+                            permission ->
+                            {
+                                stringJoiner.add(permission.getPermissionName());
+                            }
+                        );
+
                     }
             );
 
         return stringJoiner.toString();
     }
-
-
 }

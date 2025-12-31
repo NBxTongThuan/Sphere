@@ -1,18 +1,21 @@
 package com.sphere.tongthuan.UserService.service.impl;
 
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jwt.SignedJWT;
+import com.sphere.tongthuan.UserService.dto.ResponseTemplate;
+import com.sphere.tongthuan.UserService.dto.request.IntrospectRequest;
 import com.sphere.tongthuan.UserService.dto.request.LoginRequest;
 import com.sphere.tongthuan.UserService.dto.request.LogoutRequest;
+import com.sphere.tongthuan.UserService.dto.response.IntrospectResponse;
 import com.sphere.tongthuan.UserService.dto.response.LoginResponse;
-import com.sphere.tongthuan.UserService.entity.RefreshToken;
+import com.sphere.tongthuan.UserService.entity.InvalidAccessToken;
 import com.sphere.tongthuan.UserService.exception.AppException;
 import com.sphere.tongthuan.UserService.exception.ErrorCode;
-import com.sphere.tongthuan.UserService.repository.RefreshTokenRepository;
+import com.sphere.tongthuan.UserService.mapper.UserMapper;
+import com.sphere.tongthuan.UserService.repository.InvalidAccessTokenRepository;
 import com.sphere.tongthuan.UserService.repository.UserRepository;
 import com.sphere.tongthuan.UserService.service.AuthenticationService;
 import com.sphere.tongthuan.UserService.util.JwtUtil;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +23,9 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
+import java.text.ParseException;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -34,85 +33,73 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationServiceImpl implements AuthenticationService {
 
-    RefreshTokenRepository refreshTokenRepository;
 
-    JwtUtil jwtUtil;
+	@NonFinal
+	@Value("${app.token.max-refresh-token}")
+	long MAX_REFRESH_TOKEN;
 
-    UserRepository userRepository;
+	UserRepository userRepository;
 
-    PasswordEncoder passwordEncoder;
+	UserMapper userMapper;
 
-    @NonFinal
-    @Value("${app.token.max-refresh-token}")
-    long MAX_REFRESH_TOKEN;
+	JwtUtil jwtUtil;
 
-    @Override
-    public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) throws JOSEException {
+	InvalidAccessTokenRepository invalidAccessTokenRepository;
 
-        var user = userRepository
-                .findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+	@Override
+	public ResponseTemplate<LoginResponse> login(LoginRequest loginRequest, HttpServletResponse response) throws JOSEException {
+		var user = userRepository.findByEmail(loginRequest.getEmail()).orElseThrow(
+			() -> new AppException(ErrorCode.INVALID_EMAIL)
+		);
 
-        boolean authenticated = passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash());
+		String token = jwtUtil.generateAccessToken(user);
+		return ResponseTemplate.<LoginResponse>builder()
+			.message("success")
+			.result(
+				LoginResponse.builder()
+					.accessToken(token)
+					.build()
+			)
+			.build();
+	}
 
-        if (!authenticated) throw new AppException(ErrorCode.UNAUTHENTICATED);
+	@Override
+	public void logout(LogoutRequest logoutRequest) throws ParseException, JOSEException {
 
-        List<RefreshToken> refreshTokens = refreshTokenRepository.findAllByUser(user);
+		if (!jwtUtil.verifyToken(logoutRequest.getAccessToken()))
+			throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        RefreshToken refreshToken;
-        if (refreshTokens.size() < 5) {
-            refreshToken = RefreshToken.builder()
-                    .createdAt(LocalDateTime.now())
-                    .expiryDate(LocalDateTime.now().plusDays(7))
-                    .user(user)
-                    .token(jwtUtil.generateRefreshToken(user))
-                    .build();
+		SignedJWT signedJWT = SignedJWT.parse(logoutRequest.getAccessToken());
 
-            refreshTokenRepository.save(refreshToken);
+		invalidAccessTokenRepository.save(
+			InvalidAccessToken.builder()
+				.accessTokenId(signedJWT.getJWTClaimsSet().getJWTID())
+				.expiryTime(signedJWT.getJWTClaimsSet().getExpirationTime())
+				.issuer(signedJWT.getJWTClaimsSet().getIssuer())
+				.logoutAt(LocalDateTime.now())
+				.build()
+		);
 
-        } else {
-            refreshToken = refreshTokens.stream().min(Comparator.comparing(RefreshToken::getExpiryDate)).orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
+	}
 
-            if (refreshToken != null) {
-                refreshTokenRepository.delete(refreshToken);
-            }
-            refreshToken = RefreshToken.builder()
-                    .createdAt(LocalDateTime.now())
-                    .expiryDate(LocalDateTime.now().plusDays(7))
-                    .user(user)
-                    .token(jwtUtil.generateRefreshToken(user))
-                    .build();
-            refreshTokenRepository.save(refreshToken);
-        }
-        String accessToken = jwtUtil.generateAccessToken(user);
+	@Override
+	public ResponseTemplate<IntrospectResponse> authenticate(IntrospectRequest introspectRequest) throws ParseException, JOSEException {
 
-        Cookie cookie = new Cookie("rf_token", refreshToken.getToken());
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // nếu dev local thì có thể tạm để false
-        cookie.setPath("/");
-        cookie.setMaxAge(Instant.ofEpochMilli(jwtUtil.VALID_REFRESH_DURATION).getNano());
-        response.addCookie(cookie);
+		var accessToken = introspectRequest.getAccessToken();
 
-        return LoginResponse.builder()
-                .token(accessToken)
-                .build();
-    }
+		boolean verified;
+		try{
+			verified = jwtUtil.verifyToken(accessToken);
+		} catch (AppException ignored){
+			verified = false;
+		}
 
-    @Override
-    public void logout(LogoutRequest logoutRequest, HttpServletRequest request, HttpServletResponse response
-                       ) {
-        String rfToken = jwtUtil.getTokenFromCookie(request);
-
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(rfToken).orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
-        if(refreshToken!=null)
-        {
-            refreshTokenRepository.delete(refreshToken);
-        }
-        Cookie cookie = new Cookie("rf_token", "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // Xóa cookie
-        response.addCookie(cookie);
-    }
+		return ResponseTemplate.<IntrospectResponse>builder()
+			.result(
+				IntrospectResponse.builder()
+					.isValid(verified)
+					.build()
+			)
+			.build();
+	}
 }

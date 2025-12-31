@@ -14,10 +14,6 @@ public class UserProfileResponse {
 
     private String profileId;
 
-    private String lastName;
-
-    private String firstName;
-
     private LocalDate dateOfBirth;
 
     private LocalDateTime createdDate;
