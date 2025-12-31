@@ -1,17 +1,23 @@
 package com.sphere.tongthuan.UserService.exception;
 
 import com.sphere.tongthuan.UserService.dto.ResponseTemplate;
+import jakarta.validation.ConstraintViolation;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(value = Exception.class)
+    private static final String MIN_ATTRIBUTE = "min";
+
+    @ExceptionHandler(value = RuntimeException.class)
     ResponseEntity<ResponseTemplate<?>> handlingRuntimeException(RuntimeException exception){
 
         return ResponseEntity.badRequest().body(
@@ -26,7 +32,7 @@ public class GlobalExceptionHandler {
 
         ErrorCode errorCode = exception.getErrorCode();
 
-        return ResponseEntity.badRequest().body(
+        return ResponseEntity.status(errorCode.getHttpStatusCode()).body(
             ResponseTemplate.builder()
                 .message(errorCode.getMessage())
                 .code(errorCode.getCode())
@@ -34,21 +40,49 @@ public class GlobalExceptionHandler {
 
     }
 
-    @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    ResponseEntity<ResponseTemplate<?>> handlingMethodArgumentNotValidException(MethodArgumentNotValidException exception){
+    @ExceptionHandler(value = AccessDeniedException.class)
+    ResponseEntity<ResponseTemplate<?>> handlingAccessDeniedException(AccessDeniedException accessDeniedException)
+    {
+        ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
 
-        ErrorCode errorCode = ErrorCode.INVALID_KEY;
-        try{
-            errorCode = ErrorCode.valueOf(Objects.requireNonNull(exception.getFieldError()).getDefaultMessage());
-        }catch (Exception ignored)
-        {}
-
-		return ResponseEntity.badRequest().body(
+        return ResponseEntity.status(errorCode.getHttpStatusCode()).body(
             ResponseTemplate.builder()
                 .code(errorCode.getCode())
                 .message(errorCode.getMessage())
                 .build()
         );
+    }
+
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    ResponseEntity<ResponseTemplate<?>> handlingMethodArgumentNotValidException(MethodArgumentNotValidException exception) {
+
+		ErrorCode errorCode = ErrorCode.INVALID_KEY;
+		Map<String, Object> attributes = new HashMap<>();
+		try {
+			errorCode = ErrorCode.valueOf(Objects.requireNonNull(exception.getFieldError()).getDefaultMessage());
+
+			var constraintViolation = exception.getBindingResult()
+				.getAllErrors().getFirst().unwrap(ConstraintViolation.class);
+
+			attributes = constraintViolation.getConstraintDescriptor().getAttributes();
+
+		} catch (Exception ignored) {
+		}
+
+		return ResponseEntity.badRequest().body(
+			ResponseTemplate.builder()
+				.code(errorCode.getCode())
+				.message(mapAttribute(errorCode.getMessage(), attributes))
+				.build()
+		);
+
+	}
+
+    private String mapAttribute(String message, Map<String, Object> attributes){
+
+        String minValue = attributes.get(MIN_ATTRIBUTE).toString();
+
+        return message.replace("{"+MIN_ATTRIBUTE+"}", minValue);
 
     }
 

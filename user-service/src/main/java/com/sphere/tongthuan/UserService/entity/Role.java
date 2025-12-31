@@ -2,7 +2,11 @@ package com.sphere.tongthuan.UserService.entity;
 
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -20,7 +24,7 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(unique = true, nullable = true)
+    @Column(unique = true, nullable = false)
     private String roleName;
 
     private String description;
@@ -29,7 +33,12 @@ public class Role {
 
     private LocalDateTime lastModified;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "role_permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "permissions_id")
+    )
     private Set<Permission> permissions;
 
 }

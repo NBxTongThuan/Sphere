@@ -2,6 +2,7 @@ package com.sphere.tongthuan.UserService.entity;
 
 
 import com.sphere.tongthuan.UserService.constant.UserStatus;
+import com.sphere.tongthuan.UserService.validator.DobConstraint;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -24,13 +25,11 @@ public class User {
     @Column(name = "user_id")
     String userId;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, columnDefinition = "VARCHAR(255) COLLATE utf8mb4_unicode_ci")
     String email;
 
-    @Column(nullable = false, unique = true, length = 100)
     String lastName;
 
-    @Column(nullable = false, unique = true, length = 100)
     String firstName;
 
     @Column(nullable = false, length = 255)
@@ -46,7 +45,9 @@ public class User {
 
     LocalDateTime lastLogin;
 
-    @ManyToMany
+    @ManyToMany(
+        fetch = FetchType.LAZY
+    )
     Set<Role> roles;
 
     @OneToMany(

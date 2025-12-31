@@ -7,12 +7,14 @@ import com.sphere.tongthuan.UserService.dto.request.LogoutRequest;
 import com.sphere.tongthuan.UserService.dto.request.RegistrationRequest;
 import com.sphere.tongthuan.UserService.dto.response.LoginResponse;
 import com.sphere.tongthuan.UserService.dto.response.RegistrationResponse;
+import com.sphere.tongthuan.UserService.dto.response.UserResponse;
 import com.sphere.tongthuan.UserService.entity.User;
 import com.sphere.tongthuan.UserService.exception.AppException;
 import com.sphere.tongthuan.UserService.exception.ErrorCode;
 import com.sphere.tongthuan.UserService.mapper.UserMapper;
 import com.sphere.tongthuan.UserService.repository.UserRepository;
 import com.sphere.tongthuan.UserService.service.UserService;
+import com.sphere.tongthuan.UserService.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
@@ -21,16 +23,21 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
 
     @NonFinal
     @Value("${app.token.max-refresh-token}")
@@ -40,15 +47,6 @@ public class UserServiceImpl implements UserService {
 
     private UserMapper userMapper;
 
-    @Override
-    public ResponseTemplate<LoginResponse> login(LoginRequest loginRequest, HttpServletResponse response) throws JOSEException {
-        return null;
-    }
-
-    @Override
-    public void logout(LogoutRequest logoutRequest, HttpServletRequest request, HttpServletResponse response
-                       ) {
-    }
 
     @Override
     public ResponseTemplate<RegistrationResponse> register(RegistrationRequest registrationRequest) {
@@ -58,6 +56,8 @@ public class UserServiceImpl implements UserService {
 
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         registrationRequest.setPassword(passwordEncoder.encode(registrationRequest.getPassword()));
+
+
         User user = userRepository.save(userMapper.toUserEntity(registrationRequest));
 
         return ResponseTemplate.<RegistrationResponse>builder()
@@ -67,5 +67,21 @@ public class UserServiceImpl implements UserService {
                 .lastName(user.getLastName())
                 .build())
                 .build();
+    }
+
+    @Override
+    public ResponseTemplate<List<UserResponse>> getListOfUser() {
+        return ResponseTemplate.<List<UserResponse>>builder()
+            .message("Success")
+            .result(
+                userRepository.findAll()
+                    .stream()
+                    .map(userMapper::toUserResponse).toList())
+            .build();
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return null;
     }
 }

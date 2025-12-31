@@ -1,11 +1,14 @@
 package com.sphere.tongthuan.UserService.repository;
 
 import com.sphere.tongthuan.UserService.entity.Role;
-import com.sphere.tongthuan.constant.Roles;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Roles> {
+public interface RoleRepository extends JpaRepository<Role, Integer> {
+
+	Optional<Role> findByRoleName(String roleName);
 
 }
