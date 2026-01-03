@@ -1,18 +1,17 @@
-package com.sphere.tongthuan.dto;
+package com.sphere.tongthuan.APIGateway.dto.clientDtoResponse;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class BaseResponse<T> {
-    @Builder.Default
-    private int code = 1000;
-    private String message;
-    private T result;
+public class IntrospectResponse {
+
+	boolean isValid;
+
 }
