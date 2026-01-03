@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -65,11 +64,13 @@ public class AppRunnerConfiguration {
 							.roles(new HashSet<>(
 								Collections.singleton(
 									roleRepository.findByRoleName(UserRole.ADMIN.getRoleName()).orElseGet(
-										() -> Role.builder()
-											.roleName(UserRole.ADMIN.getRoleName())
-											.createdDate(LocalDateTime.now())
-											.lastModified(LocalDateTime.now())
-											.build()
+										() -> roleRepository.save(
+											Role.builder()
+												.roleName(UserRole.USER.getRoleName())
+												.createdDate(LocalDateTime.now())
+												.lastModified(LocalDateTime.now())
+												.build()
+										)
 									)
 								)
 							))

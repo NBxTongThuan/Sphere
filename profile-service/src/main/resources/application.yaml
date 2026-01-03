@@ -15,3 +15,7 @@ server:
   servlet:
     context-path: /profile-service
 
+jwt:
+  signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
+  valid-access-duration: 30 # in minute
+  valid-refresh-duration: 10080 # in minute

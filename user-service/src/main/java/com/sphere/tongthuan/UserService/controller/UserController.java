@@ -39,10 +39,12 @@ public class UserController {
     }
 
     @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
     ResponseTemplate<List<UserResponse>> getListOfUser()
     {
         String roleName = UserRole.ADMIN.getRoleName();
         return userService.getListOfUser();
     }
+
 
 }
